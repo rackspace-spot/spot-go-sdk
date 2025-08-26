@@ -7,31 +7,31 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"k8s.io/klog/v2"
 )
 
-// Configuration struct for RackspaceSpotClient
+// Config holds the configuration for the Rackspace Spot API client
 type Config struct {
 	BaseURL      string
 	OAuthURL     string
 	HTTPClient   *http.Client
-	RefreshToken string
 	AccessToken  string
-	Timeout      time.Duration
-	LogLevel     int
+	RefreshToken string
 }
 
-// RackspaceSpotClient is the main client for interacting with the Rackspace Spot API.
 type RackspaceSpotClient struct {
 	BaseURL      string
 	OAuthURL     string
 	HTTPClient   *http.Client
-	AccessToken  string
+	Token        string
 	RefreshToken string
-	Timeout      time.Duration
 }
 
 type HTTPStatusError struct {
@@ -39,16 +39,19 @@ type HTTPStatusError struct {
 	Body       string
 }
 
-// NewClient creates a new RackspaceSpotClient with the given configuration.
-func NewSpotClient(cfg Config) *RackspaceSpotClient {
+// NewSpotClient creates a new Rackspace Spot API client with secure defaults
+func NewSpotClient(cfg *Config) (*RackspaceSpotClient, error) {
+	if cfg.BaseURL == "" {
+		return nil, fmt.Errorf("base URL is required")
+	}
+
 	return &RackspaceSpotClient{
 		BaseURL:      cfg.BaseURL,
 		OAuthURL:     cfg.OAuthURL,
 		HTTPClient:   cfg.HTTPClient,
+		Token:        cfg.AccessToken,
 		RefreshToken: cfg.RefreshToken,
-		AccessToken:  cfg.AccessToken,
-		Timeout:      cfg.Timeout,
-	}
+	}, nil
 }
 
 func (e *HTTPStatusError) Error() string {
@@ -96,7 +99,59 @@ func (c *RackspaceSpotClient) handleAPIError(err error, resourceType, resourceNa
 	}
 }
 
+// validateURL performs basic validation of a URL
+func validateURL(urlStr string) error {
+	// Check for empty URL
+	if urlStr == "" {
+		return errors.New("URL cannot be empty")
+	}
+
+	// Parse the URL
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+
+	// Check scheme (http or https)
+	scheme := strings.ToLower(parsedURL.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return fmt.Errorf("invalid URL scheme: %s, must be http or https", scheme)
+	}
+
+	// Check hostname
+	if parsedURL.Host == "" {
+		return errors.New("URL must contain a host")
+	}
+
+	// Validate hostname
+	hostname := parsedURL.Hostname()
+	if !isValidHostname(hostname) {
+		return fmt.Errorf("invalid hostname: %s", hostname)
+	}
+
+	// Check for invalid characters in path
+	if strings.ContainsAny(parsedURL.Path, "\x00\r\n") {
+		return errors.New("URL path contains invalid characters")
+	}
+
+	// Validate port if present
+	if port := parsedURL.Port(); port != "" {
+		portNum, err := strconv.Atoi(port)
+		if err != nil || portNum < 1 || portNum > 65535 {
+			return fmt.Errorf("invalid port number")
+		}
+	}
+
+	return nil
+}
+
+// doRequest performs an HTTP request with the given method, URL, body, and headers.
+// It handles authentication, rate limiting, and error handling.
 func (c *RackspaceSpotClient) doRequest(ctx context.Context, method, url string, body []byte, headers map[string]string, out interface{}) error {
+	if err := validateURL(url); err != nil {
+		return err
+	}
+
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
 	if err != nil {
 		klog.Errorf("doRequest: failed to create request: %v", err)
@@ -166,6 +221,57 @@ func (c *RackspaceSpotClient) doRequest(ctx context.Context, method, url string,
 	}
 
 	return nil
+}
+
+// isValidHostname checks if a string is a valid hostname (supports both domains and IPs)
+func isValidHostname(hostname string) bool {
+	// First try to parse as IP address
+	if ip := net.ParseIP(hostname); ip != nil {
+		return true
+	}
+
+	// Then check as domain name (simplified check)
+	// This is a basic check - for production you might want more comprehensive validation
+	if len(hostname) > 253 || len(hostname) == 0 {
+		return false
+	}
+
+	// Check each label in the hostname
+	for _, label := range strings.Split(hostname, ".") {
+		if len(label) > 63 || len(label) == 0 {
+			return false
+		}
+
+		// Labels must start and end with alphanumeric characters
+		if len(label) > 0 && !isAlphanumeric(rune(label[0])) || !isAlphanumeric(rune(label[len(label)-1])) {
+			return false
+		}
+
+		// Labels can contain alphanumeric characters and hyphens
+		for _, r := range label {
+			if !isAlphanumeric(r) && r != '-' {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+// isAlphanumeric checks if a rune is alphanumeric
+func isAlphanumeric(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+}
+
+// APIError represents an error response from the API
+type APIError struct {
+	Message string `json:"message"`
+	Code    int    `json:"code"`
+}
+
+// Error implements the error interface
+func (e *APIError) Error() string {
+	return fmt.Sprintf("API error %d: %s", e.Code, e.Message)
 }
 
 // Helper matchers for consumers (like your CLI)

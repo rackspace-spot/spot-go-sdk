@@ -10,6 +10,12 @@ import (
 
 // ListOnDemandNodePools retrieves all on-demand node pools in a namespace.
 func (c *RackspaceSpotClient) ListOnDemandNodePools(ctx context.Context, org, cloudspaceName string) ([]*OnDemandNodePool, error) {
+	if err := ValidateOrgName(org); err != nil {
+		return nil, fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(cloudspaceName); err != nil {
+		return nil, fmt.Errorf("invalid cloudspace name: %w", err)
+	}
 
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
@@ -56,8 +62,20 @@ func (c *RackspaceSpotClient) ListOnDemandNodePools(ctx context.Context, org, cl
 	return finalList, nil
 }
 
-// CreateOnDemandNodePool creates a new ondemand node pool in the given namespace.
+// CreateOnDemandNodePool creates a new on-demand node pool in the given namespace.
 func (c *RackspaceSpotClient) CreateOnDemandNodePool(ctx context.Context, org string, pool OnDemandNodePool) error {
+	if err := ValidateOrgName(org); err != nil {
+		return fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(pool.Name); err != nil {
+		return fmt.Errorf("invalid node pool name: %w", err)
+	}
+	if err := ValidateResourceName(pool.Cloudspace); err != nil {
+		return fmt.Errorf("invalid cloudspace name: %w", err)
+	}
+	if err := ValidateResourceName(pool.ServerClass); err != nil {
+		return fmt.Errorf("invalid server class name: %w", err)
+	}
 
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
@@ -124,8 +142,14 @@ func (c *RackspaceSpotClient) CreateOnDemandNodePool(ctx context.Context, org st
 	return nil
 }
 
-// DeleteOnDemandNodePool deletes an ondemand node pool by name in the given namespace.
+// DeleteOnDemandNodePool deletes an on-demand node pool by name in the given namespace.
 func (c *RackspaceSpotClient) DeleteOnDemandNodePool(ctx context.Context, org, name string) error {
+	if err := ValidateOrgName(org); err != nil {
+		return fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(name); err != nil {
+		return fmt.Errorf("invalid node pool name: %w", err)
+	}
 
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
@@ -141,8 +165,15 @@ func (c *RackspaceSpotClient) DeleteOnDemandNodePool(ctx context.Context, org, n
 
 }
 
-// GetOnDemandNodePool retrieves an ondemand node pool by name in the given namespace.
+// GetOnDemandNodePool retrieves an on-demand node pool by name in the given namespace.
 func (c *RackspaceSpotClient) GetOnDemandNodePool(ctx context.Context, org, name string) (*OnDemandNodePool, error) {
+	if err := ValidateOrgName(org); err != nil {
+		return nil, fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(name); err != nil {
+		return nil, fmt.Errorf("invalid node pool name: %w", err)
+	}
+
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
 		return nil, err
@@ -179,6 +210,12 @@ func (c *RackspaceSpotClient) GetOnDemandNodePool(ctx context.Context, org, name
 }
 
 func (c *RackspaceSpotClient) UpdateOnDemandNodePool(ctx context.Context, org string, pool OnDemandNodePool) error {
+	if err := ValidateOrgName(org); err != nil {
+		return fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(pool.Name); err != nil {
+		return fmt.Errorf("invalid node pool name: %w", err)
+	}
 
 	if pool.Name == "" {
 		return fmt.Errorf("name must be provided")

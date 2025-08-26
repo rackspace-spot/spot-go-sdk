@@ -10,6 +10,12 @@ import (
 
 // ListSpotNodePools retrieves all spot node pools in a namespace.
 func (c *RackspaceSpotClient) ListSpotNodePools(ctx context.Context, org, cloudspaceName string) ([]*SpotNodePool, error) {
+	if err := ValidateOrgName(org); err != nil {
+		return nil, fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(cloudspaceName); err != nil {
+		return nil, fmt.Errorf("invalid cloudspace name: %w", err)
+	}
 
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
@@ -52,6 +58,22 @@ func (c *RackspaceSpotClient) ListSpotNodePools(ctx context.Context, org, clouds
 
 // CreateSpotNodePool creates a new spot node pool in the given namespace.
 func (c *RackspaceSpotClient) CreateSpotNodePool(ctx context.Context, org string, pool SpotNodePool) error {
+	if err := ValidateOrgName(org); err != nil {
+		return fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(pool.Name); err != nil {
+		return fmt.Errorf("invalid node pool name: %w", err)
+	}
+	if err := ValidateResourceName(pool.Cloudspace); err != nil {
+		return fmt.Errorf("invalid cloudspace name: %w", err)
+	}
+	if err := ValidateResourceName(pool.ServerClass); err != nil {
+		return fmt.Errorf("invalid server class name: %w", err)
+	}
+	if err := ValidateBidPrice(pool.BidPrice); err != nil {
+		return fmt.Errorf("invalid bid price: %w", err)
+	}
+
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
 		return err
@@ -117,8 +139,16 @@ func (c *RackspaceSpotClient) CreateSpotNodePool(ctx context.Context, org string
 
 // UpdateSpotNodePool updates a spot node pool in the given namespace.
 func (c *RackspaceSpotClient) UpdateSpotNodePool(ctx context.Context, org string, pool SpotNodePool) error {
-	if pool.Name == "" {
-		return fmt.Errorf("name must be provided")
+	if err := ValidateOrgName(org); err != nil {
+		return fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(pool.Name); err != nil {
+		return fmt.Errorf("invalid node pool name: %w", err)
+	}
+	if pool.BidPrice != "" {
+		if err := ValidateBidPrice(pool.BidPrice); err != nil {
+			return fmt.Errorf("invalid bid price: %w", err)
+		}
 	}
 
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
@@ -177,6 +207,13 @@ func (c *RackspaceSpotClient) UpdateSpotNodePool(ctx context.Context, org string
 
 // DeleteSpotNodePool deletes a spot node pool by name in the given namespace.
 func (c *RackspaceSpotClient) DeleteSpotNodePool(ctx context.Context, org, name string) error {
+	if err := ValidateOrgName(org); err != nil {
+		return fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(name); err != nil {
+		return fmt.Errorf("invalid node pool name: %w", err)
+	}
+
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
 		return c.handleAPIError(err, "organization", org, "find")
@@ -192,6 +229,13 @@ func (c *RackspaceSpotClient) DeleteSpotNodePool(ctx context.Context, org, name 
 
 // GetSpotNodePool retrieves a spot node pool by name in the given namespace.
 func (c *RackspaceSpotClient) GetSpotNodePool(ctx context.Context, org, name string) (*SpotNodePool, error) {
+	if err := ValidateOrgName(org); err != nil {
+		return nil, fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(name); err != nil {
+		return nil, fmt.Errorf("invalid node pool name: %w", err)
+	}
+
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
 		return nil, err

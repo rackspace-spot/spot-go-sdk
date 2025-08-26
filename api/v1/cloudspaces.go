@@ -9,6 +9,10 @@ import (
 
 // ListCloudspaces retrieves all cloudspaces in a namespace.
 func (c *RackspaceSpotClient) ListCloudspaces(ctx context.Context, org string) (*CloudSpaceList, error) {
+	if err := ValidateOrgName(org); err != nil {
+		return nil, fmt.Errorf("invalid organization name: %w", err)
+	}
+
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
 		return nil, c.handleAPIError(err, "organization", org, "find")
@@ -60,6 +64,19 @@ func (c *RackspaceSpotClient) ListCloudspaces(ctx context.Context, org string) (
 
 // CreateCloudspace creates a new cloudspace in the given namespace.
 func (c *RackspaceSpotClient) CreateCloudspace(ctx context.Context, cs CloudSpace) error {
+	if err := ValidateOrgName(cs.Org); err != nil {
+		return fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(cs.Name); err != nil {
+		return fmt.Errorf("invalid cloudspace name: %w", err)
+	}
+	if cs.Region == "" {
+		return fmt.Errorf("region is required")
+	}
+	if cs.KubernetesVersion == "" {
+		return fmt.Errorf("kubernetes version is required")
+	}
+
 	exists, orgID, err := c.getOrgIDIfExists(ctx, cs.Org)
 	if err != nil {
 		return c.handleAPIError(err, "organization", cs.Org, "find")
@@ -117,6 +134,13 @@ func (c *RackspaceSpotClient) CreateCloudspace(ctx context.Context, cs CloudSpac
 
 // DeleteCloudspace deletes a cloudspace by name in the given namespace.
 func (c *RackspaceSpotClient) DeleteCloudspace(ctx context.Context, org, name string) error {
+	if err := ValidateOrgName(org); err != nil {
+		return fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(name); err != nil {
+		return fmt.Errorf("invalid cloudspace name: %w", err)
+	}
+
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
 		return c.handleAPIError(err, "organization", org, "find")
@@ -132,6 +156,13 @@ func (c *RackspaceSpotClient) DeleteCloudspace(ctx context.Context, org, name st
 
 // GetCloudspace retrieves a cloudspace by name in the given namespace.
 func (c *RackspaceSpotClient) GetCloudspace(ctx context.Context, org, name string) (*CloudSpace, error) {
+	if err := ValidateOrgName(org); err != nil {
+		return nil, fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(name); err != nil {
+		return nil, fmt.Errorf("invalid cloudspace name: %w", err)
+	}
+
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
 		return nil, err
@@ -181,6 +212,15 @@ func (c *RackspaceSpotClient) GetCloudspace(ctx context.Context, org, name strin
 }
 
 func (c *RackspaceSpotClient) GetCloudspaceConfig(ctx context.Context, namespace, name string) (string, error) {
+	if err := ValidateOrgName(namespace); err != nil {
+		return "", fmt.Errorf("invalid organization name: %w", err)
+	}
+	if err := ValidateResourceName(name); err != nil {
+		return "", fmt.Errorf("invalid cloudspace name: %w", err)
+	}
+	if c.RefreshToken == "" {
+		return "", fmt.Errorf("refresh token is required")
+	}
 	url := fmt.Sprintf("%s/apis/auth.ngpc.rxt.io/v1/generate-kubeconfig", c.BaseURL)
 	reqBody := struct {
 		OrganizationName string `json:"organization_name"`
