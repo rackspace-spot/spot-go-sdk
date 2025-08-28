@@ -241,6 +241,44 @@ type OnDemandNodePoolListResponse struct {
 	} `json:"metadata"`
 }
 
+type GetServerClassResponse struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Metadata   struct {
+		Name string `json:"name"`
+	} `json:"metadata"`
+	Spec struct {
+		Availability       string `json:"availability"`
+		Category           string `json:"category"`
+		DisplayName        string `json:"displayName"`
+		FlavorType         string `json:"flavorType"`
+		MinBidPricePerHour string `json:"minBidPricePerHour,omitempty"`
+		OnDemandPricing    struct {
+			Cost     string `json:"cost"`
+			Interval string `json:"interval"`
+		} `json:"onDemandPricing"`
+		Provider struct {
+			ProviderFlavorID string `json:"providerFlavorID"`
+			ProviderType     string `json:"providerType"`
+		} `json:"provider"`
+		Region    string `json:"region"`
+		Resources struct {
+			CPU    string `json:"cpu"`
+			Memory string `json:"memory"`
+		} `json:"resources"`
+	} `json:"spec"`
+	Status struct {
+		Available   int `json:"available"`
+		Capacity    int `json:"capacity"`
+		LastAuction int `json:"lastAuction"`
+		Reserved    int `json:"reserved"`
+		SpotPricing struct {
+			HammerPricePerHour string `json:"hammerPricePerHour"`
+			MarketPricePerHour string `json:"marketPricePerHour"`
+		} `json:"spotPricing"`
+	} `json:"status"`
+}
+
 type ListServerClassesResponse struct {
 	APIVersion string `json:"apiVersion"`
 	Items      []struct {

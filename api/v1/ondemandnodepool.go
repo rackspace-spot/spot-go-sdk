@@ -73,6 +73,13 @@ func (c *RackspaceSpotClient) CreateOnDemandNodePool(ctx context.Context, org st
 	if err := ValidateResourceName(pool.Name); err != nil {
 		return fmt.Errorf("invalid node pool name: %w", err)
 	}
+	serverClass, err := c.GetServerClass(ctx, pool.ServerClass)
+	if err != nil {
+		return fmt.Errorf("invalid server class: %w", err)
+	}
+	if err := ValidateServerClass(*serverClass); err != nil {
+		return fmt.Errorf("invalid server class: %w", err)
+	}
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
 		return err

@@ -108,6 +108,7 @@ type ServerClassList struct {
 type ServerClass struct {
 	Name                      string   `json:"name" yaml:"name"`
 	Category                  string   `json:"category,omitempty" yaml:"category,omitempty"`
+	Availability              string   `json:"availability,omitempty" yaml:"availability,omitempty"`
 	Displayname               string   `json:"displayname,omitempty" yaml:"displayname,omitempty"`
 	Region                    string   `json:"region,omitempty" yaml:"region,omitempty"`
 	MinBidPricePerHour        string   `json:"minBidPricePerHour,omitempty" yaml:"minBidPricePerHour,omitempty"`

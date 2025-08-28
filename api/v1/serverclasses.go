@@ -34,6 +34,7 @@ func (c *RackspaceSpotClient) ListServerClasses(ctx context.Context, region stri
 					marketPrice = "N/A"
 				}
 				serverclasses = append(serverclasses, ServerClass{
+					Availability:              item.Spec.Availability,
 					Name:                      item.Metadata.Name,
 					Category:                  item.Spec.Category,
 					Region:                    item.Spec.Region,
@@ -57,6 +58,7 @@ func (c *RackspaceSpotClient) ListServerClasses(ctx context.Context, region stri
 			marketPrice = "N/A"
 		}
 		serverclasses = append(serverclasses, ServerClass{
+			Availability:              item.Spec.Availability,
 			Name:                      item.Metadata.Name,
 			Category:                  item.Spec.Category,
 			Region:                    item.Spec.Region,
@@ -74,9 +76,13 @@ func (c *RackspaceSpotClient) ListServerClasses(ctx context.Context, region stri
 
 // GetServerClass retrieves a server class by name.
 func (c *RackspaceSpotClient) GetServerClass(ctx context.Context, name string) (*ServerClass, error) {
-	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/serverclasses", c.BaseURL)
+	if err := ValidateResourceName(name); err != nil {
+		return nil, fmt.Errorf("invalid server class name: %w", err)
+	}
 
-	var interm ListServerClassesResponse
+	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/serverclasses/%s", c.BaseURL, name)
+
+	var interm GetServerClassResponse
 	if err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &interm); err != nil {
 		return nil, c.handleAPIError(err, "server class", name, "get")
 	}
@@ -85,24 +91,18 @@ func (c *RackspaceSpotClient) GetServerClass(ctx context.Context, name string) (
 		return nil, err
 	}
 
-	var serverclass ServerClass
-
-	for _, item := range interm.Items {
-		if item.Metadata.Name == name {
-			serverclass = ServerClass{
-				Name:                      item.Metadata.Name,
-				Category:                  item.Spec.Category,
-				Region:                    item.Spec.Region,
-				MinBidPricePerHour:        "$" + item.Spec.MinBidPricePerHour,
-				CurrentMarketPricePerHour: marketPrice,
-				OnDemandPricePerHour:      "$" + item.Spec.OnDemandPricing.Cost,
-				Resources: Resource{
-					CPU:    item.Spec.Resources.CPU,
-					Memory: item.Spec.Resources.Memory,
-				},
-			}
-			return &serverclass, nil
-		}
+	serverclass := ServerClass{
+		Availability:              interm.Spec.Availability,
+		Name:                      interm.Metadata.Name,
+		Category:                  interm.Spec.Category,
+		Region:                    interm.Spec.Region,
+		MinBidPricePerHour:        "$" + interm.Spec.MinBidPricePerHour,
+		CurrentMarketPricePerHour: marketPrice,
+		OnDemandPricePerHour:      "$" + interm.Spec.OnDemandPricing.Cost,
+		Resources: Resource{
+			CPU:    interm.Spec.Resources.CPU,
+			Memory: interm.Spec.Resources.Memory,
+		},
 	}
-	return nil, fmt.Errorf("server class '%s' not found", name)
+	return &serverclass, nil
 }

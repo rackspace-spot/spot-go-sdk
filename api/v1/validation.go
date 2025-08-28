@@ -99,3 +99,10 @@ func ValidateBidPrice(price string) error {
 	// You can optionally parse to float64 here if needed to further validate
 	return nil
 }
+
+func ValidateServerClass(serverClass ServerClass) error {
+	if serverClass.Availability != "available" {
+		return fmt.Errorf("server class - %s is not available", serverClass.Name)
+	}
+	return nil
+}

@@ -71,6 +71,14 @@ func (c *RackspaceSpotClient) CreateSpotNodePool(ctx context.Context, org string
 		return fmt.Errorf("invalid bid price: %w", err)
 	}
 
+	serverClass, err := c.GetServerClass(ctx, pool.ServerClass)
+	if err != nil {
+		return fmt.Errorf("invalid server class: %w", err)
+	}
+	if err := ValidateServerClass(*serverClass); err != nil {
+		return fmt.Errorf("invalid server class: %w", err)
+	}
+
 	exists, orgID, err := c.getOrgIDIfExists(ctx, org)
 	if err != nil {
 		return err
