@@ -1,53 +1,131 @@
-# Rackspace Spot Go SDK (In Development)
+# Rackspace Spot Go SDK
 
 This package provides an idiomatic Go SDK for interacting with the Rackspace Spot platform. It enables developers and DevOps teams to programmatically manage cloud resources such as cloudspaces (Kubernetes clusters), spot node pools, and on-demand node pools.
 
-**Versioned API structure:**
-- All types and client logic for API v1 are in `api/v1/` (import as `v1`).
-- This structure is similar to AWS SDKs and supports future API versions (e.g., `api/v2/`).
+## Features
 
-## Features (Planned)
-- Authenticate with Rackspace Spot using OAuth2 refresh tokens
-- Create, list, and delete cloudspaces
-- Manage spot and on-demand node pools
-- Query available regions, server classes, and price history
-- Example CLI for resource management
-- Comprehensive documentation and usage examples
-
-## Roadmap
-1. Core SDK: Authentication, cloudspace management
-2. Node pool management (spot/on-demand)
-3. Utility methods (regions, server classes, price history)
-4. Example CLI tool
-5. Tests and documentation
-
+- **Authentication**: Secure authentication with the Rackspace Spot API
+- **CloudSpaces**: Create, list, update, and delete Kubernetes clusters
+- **Node Pools**: Manage both spot and on-demand node pools
+- **Server Classes**: Query available server classes and their specifications
+- **Regions**: List available regions and their details
+- **Type-Safe**: Strongly typed API for better developer experience
+- **Idiomatic Go**: Follows Go best practices and conventions
 
 ## Installation
 
-### 1. Install the SDK
+Add the SDK to your Go module:
 
-Clone this repository and use Go modules to import the SDK in your project:
-
-```sh
-git clone https://github.com/rackerlabs/spot-go-sdk.git
-cd spot-go-sdk/rxtspot
+```bash
+go get github.com/rackspace/spot-go-sdk
 ```
 
-Or add to your Go project:
+## Usage
+
+### Creating a Client
 
 ```go
-import v1 "github.com/rackerlabs/spot-go-sdk/rxtspot/api/v1"
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	"github.com/rackspace/spot-go-sdk/api/v1"
+)
+
+func main() {
+	// Initialize the client
+	cfg := v1.ClientConfig{
+		BaseURL:    "https://api.spot.io", // Replace with actual API URL
+		AuthToken:  os.Getenv("SPOT_AUTH_TOKEN"),
+		HTTPClient: nil, // Uses default client if nil
+	}
+
+	client, err := v1.NewClient(cfg)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	defer client.Close()
+
+	// Use the client...
+}
 ```
 
-### 2. Authentication
+### Example: List All Regions
 
-You need a Rackspace Spot refresh token. Set it as an environment variable:
+```go
+regions, err := client.Regions().List(context.Background(), "", nil)
+if err != nil {
+    log.Fatalf("Failed to list regions: %v", err)
+}
 
-```sh
-export SPOT_REFRESH_TOKEN=your_refresh_token_here
+for _, r := range regions {
+    fmt.Printf("- %s (%s)\n", r.Name, r.Provider)
+}
 ```
 
-### 3. Example Usage
+### Example: Create a CloudSpace
+
+```go
+createOpts := &cloudspace.CreateOptions{
+    Name:        "my-cloudspace",
+    Org:         "my-org",
+    Region:      "us-east-1",
+    ServerClass: "general-purpose-1",
+}
+
+createdCS, err := client.Cloudspaces().Create(context.Background(), createOpts)
+if err != nil {
+    log.Fatalf("Failed to create cloudspace: %v", err)
+}
+fmt.Printf("Created cloudspace: %+v\n", createdCS)
+```
+
+## Package Structure
+
+```
+api/v1/
+├── client.go              # Main client interface and implementation
+├── client_interface.go    # Public client interface
+├── cloudspace/            # CloudSpace types and service
+│   └── types.go
+├── nodepool/
+│   ├── spot/              # Spot node pool types and service
+│   │   ├── types.go
+│   │   └── service.go
+│   └── ondemand/          # On-demand node pool types and service
+│       ├── types.go
+│       └── service.go
+├── region/                # Region types and service
+│   ├── types.go
+│   └── service.go
+└── serverclass/           # Server class types and service
+    ├── types.go
+    └── service.go
+```
+
+## Authentication
+
+You'll need an authentication token to use the SDK. Set it as an environment variable:
+
+```bash
+export SPOT_AUTH_TOKEN=your_auth_token_here
+```
+
+## Examples
+
+See the `examples/` directory for more comprehensive examples:
+
+```bash
+cd examples/basic
+go run main.go
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 See [`examples/main.go`](examples/main.go) for a full example. Here is a minimal usage snippet:
 

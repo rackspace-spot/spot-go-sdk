@@ -27,7 +27,7 @@ func (c *RackspaceSpotClient) ListServerClasses(ctx context.Context, region stri
 	var serverclasses []ServerClass
 	if region != "" {
 		for _, item := range interm.Items {
-			if item.Spec.Region == region {
+			if item.Spec.Region == region && item.Spec.Availability == "available" {
 				marketPrice, err := c.GetMarketPriceForServerClass(ctx, item.Metadata.Name)
 				if err != nil {
 					// If market price is not found, set to "N/A" and continue
