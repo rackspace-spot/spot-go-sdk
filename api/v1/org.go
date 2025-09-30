@@ -17,7 +17,7 @@ func (c *RackspaceSpotClient) ListOrganizations(ctx context.Context) ([]Organiza
 	}
 
 	// Pass &response to doRequest so it decodes automatically
-	err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &response)
+	_, err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &response)
 	if err != nil {
 		return nil, c.handleAPIError(err, "organization", "", "list")
 	}
@@ -33,7 +33,7 @@ func (c *RackspaceSpotClient) getOrgIDIFExists(ctx context.Context, orgName stri
 	}
 
 	// Pass &response to doRequest so it decodes automatically
-	err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &response)
+	_, err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &response)
 	if err != nil {
 		return false, "", c.handleAPIError(err, "organization", orgName, "find")
 	}
@@ -57,7 +57,7 @@ func (c *RackspaceSpotClient) getOrgIDIFExistsWithoutNormalizing(ctx context.Con
 	}
 
 	// Pass &response to doRequest so it decodes automatically
-	err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &response)
+	_, err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &response)
 	if err != nil {
 		return false, "", c.handleAPIError(err, "organization", orgName, "find")
 	}

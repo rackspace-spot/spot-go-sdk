@@ -35,7 +35,7 @@ func (c *RackspaceSpotClient) ListOnDemandNodePools(ctx context.Context, org, cl
 	)
 
 	var pool OnDemandNodePoolListResponse
-	if err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &pool); err != nil {
+	if _, err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &pool); err != nil {
 		return nil, c.handleAPIError(err, "ondemand node pool", cloudspaceName, "list")
 	}
 
@@ -122,7 +122,7 @@ func (c *RackspaceSpotClient) CreateOnDemandNodePool(ctx context.Context, org st
 		return err
 	}
 
-	err = c.doRequest(ctx, http.MethodPost, url, body, c.authHeader(), nil)
+	_, err = c.doRequest(ctx, http.MethodPost, url, body, c.authHeader(), nil)
 	if err != nil {
 		return c.handleAPIError(err, "ondemand node pool", pool.Name, "create")
 	}
@@ -147,9 +147,12 @@ func (c *RackspaceSpotClient) DeleteOnDemandNodePool(ctx context.Context, org, n
 	}
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/namespaces/%s/ondemandnodepools/%s", c.BaseURL, orgID, name)
 
-	err = c.doRequest(ctx, http.MethodDelete, url, nil, c.authHeader(), nil)
-	return c.handleAPIError(err, "ondemand node pool", name, "delete")
+	_, err = c.doRequest(ctx, http.MethodDelete, url, nil, c.authHeader(), nil)
+	if err != nil {
+		return c.handleAPIError(err, "ondemand node pool", name, "delete")
+	}
 
+	return nil
 }
 
 // GetOnDemandNodePool retrieves an on-demand node pool by name in the given namespace.
@@ -171,7 +174,7 @@ func (c *RackspaceSpotClient) GetOnDemandNodePool(ctx context.Context, org, name
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/namespaces/%s/ondemandnodepools/%s", c.BaseURL, orgID, name)
 
 	var interm OnDemandNodePoolGetResponse
-	if err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &interm); err != nil {
+	if err := c.doRequestJSON(ctx, http.MethodGet, url, nil, &interm, c.authHeader()); err != nil {
 		return nil, c.handleAPIError(err, "ondemand node pool", name, "get")
 	}
 
@@ -220,20 +223,20 @@ func (c *RackspaceSpotClient) UpdateOnDemandNodePool(ctx context.Context, org st
 	}
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/namespaces/%s/ondemandnodepools/%s", c.BaseURL, orgID, pool.Name)
 
-    // Only include mutable fields in the update request
-    updateBody := OnDemandNodePoolUpdateRequestBody{
-        Spec: OnDemandNodePoolUpdateSpec{
-            Desired:           pool.Desired,
-            CustomAnnotations: pool.CustomAnnotations,
-            CustomLabels:      pool.CustomLabels,
-            CustomTaints:      pool.CustomTaints,
-            Autoscaling: AutoscalingInt64Update{
-                Enabled:  pool.Autoscaling.Enabled,
-                MinNodes: int64(pool.Autoscaling.MinNodes),
-                MaxNodes: int64(pool.Autoscaling.MaxNodes),
-            },
-        },
-    }
+	// Only include mutable fields in the update request
+	updateBody := OnDemandNodePoolUpdateRequestBody{
+		Spec: OnDemandNodePoolUpdateSpec{
+			Desired:           pool.Desired,
+			CustomAnnotations: pool.CustomAnnotations,
+			CustomLabels:      pool.CustomLabels,
+			CustomTaints:      pool.CustomTaints,
+			Autoscaling: AutoscalingInt64Update{
+				Enabled:  pool.Autoscaling.Enabled,
+				MinNodes: int64(pool.Autoscaling.MinNodes),
+				MaxNodes: int64(pool.Autoscaling.MaxNodes),
+			},
+		},
+	}
 
 	body, err := json.Marshal(updateBody)
 	if err != nil {
@@ -241,7 +244,7 @@ func (c *RackspaceSpotClient) UpdateOnDemandNodePool(ctx context.Context, org st
 	}
 
 	var respBody interface{}
-	err = c.doRequest(ctx, http.MethodPatch, url, body, c.authHeader(), &respBody)
+	_, err = c.doRequest(ctx, http.MethodPatch, url, body, c.authHeader(), &respBody)
 	return c.handleAPIError(err, "ondemand node pool", pool.Name, "update")
 
 }

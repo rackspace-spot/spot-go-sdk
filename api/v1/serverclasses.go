@@ -21,7 +21,7 @@ func (c *RackspaceSpotClient) ListServerClasses(ctx context.Context, region stri
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/serverclasses", c.BaseURL)
 
 	var interm ListServerClassesResponse
-	if err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &interm); err != nil {
+	if _, err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &interm); err != nil {
 		return nil, c.handleAPIError(err, "server class", "", "list")
 	}
 	var serverclasses []ServerClass
@@ -79,14 +79,17 @@ func (c *RackspaceSpotClient) GetServerClass(ctx context.Context, name string) (
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/serverclasses/%s", c.BaseURL, name)
 
 	var interm GetServerClassResponse
-	if err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &interm); err != nil {
+	if _, err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &interm); err != nil {
 		return nil, c.handleAPIError(err, "server class", name, "get")
 	}
+	fmt.Printf("interim server Class: %v\n", interm)
+	fmt.Printf("url: %v\n", url)
 	marketPrice, err := c.GetMarketPriceForServerClass(ctx, name)
 	if err != nil {
+		fmt.Printf("error --- %+v \n", err)
 		return nil, err
 	}
-
+	fmt.Printf("market price - %+v \n", marketPrice)
 	serverclass := ServerClass{
 		Availability:              interm.Spec.Availability,
 		Name:                      interm.Metadata.Name,
@@ -100,5 +103,6 @@ func (c *RackspaceSpotClient) GetServerClass(ctx context.Context, name string) (
 			Memory: interm.Spec.Resources.Memory,
 		},
 	}
+	fmt.Printf("server class - %+v \n", serverclass)
 	return &serverclass, nil
 }

@@ -11,7 +11,7 @@ func (c *RackspaceSpotClient) ListRegions(ctx context.Context) ([]Region, error)
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/regions", c.BaseURL)
 
 	var regions ListRegionsResponse
-	if err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &regions); err != nil {
+	if _, err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &regions); err != nil {
 		return nil, c.handleAPIError(err, "region", "", "list")
 	}
 	var regionList []Region
@@ -26,19 +26,13 @@ func (c *RackspaceSpotClient) ListRegions(ctx context.Context) ([]Region, error)
 
 // GetRegion retrieves a region by name.
 func (c *RackspaceSpotClient) GetRegion(ctx context.Context, name string) (*Region, error) {
-	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/regions", c.BaseURL)
-
-	var regions ListRegionsResponse
-	if err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &regions); err != nil {
+	regions, err := c.ListRegions(ctx)
+	if err != nil {
 		return nil, c.handleAPIError(err, "region", name, "get")
 	}
-	var region Region
-	for _, item := range regions.Items {
-		if item.Metadata.Name == name {
-			region = Region{
-				Name:        item.Metadata.Name,
-				Description: item.Spec.Description,
-			}
+	///fmt.Printf("Regions: %v\n", regions)
+	for _, region := range regions {
+		if region.Name == name {
 			return &region, nil
 		}
 	}

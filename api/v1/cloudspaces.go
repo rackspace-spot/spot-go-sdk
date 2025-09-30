@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"k8s.io/klog/v2"
 )
 
 // ListCloudspaces retrieves all cloudspaces in a namespace.
@@ -22,14 +24,15 @@ func (c *RackspaceSpotClient) ListCloudspaces(ctx context.Context, org string) (
 	}
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/namespaces/%s/cloudspaces", c.BaseURL, orgID)
 
-	// Pass &interm to be populated by doRequest JSON decoding
-	var interm cloudSpaceListResponse
-	err = c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &interm)
-	if err != nil {
+	// Get the list of cloudspaces
+	var result cloudSpaceListResponse
+	if _, err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &result); err != nil {
 		return nil, c.handleAPIError(err, "cloudspaces", "", "list")
 	}
+
+	// Process each cloudspace to include node pools
 	var finalList CloudSpaceList
-	for _, cs := range interm.Items {
+	for _, cs := range result.Items {
 		// Spot node pools
 		spotNodePools, err := c.ListSpotNodePools(ctx, org, cs.Metadata.Name)
 		if err != nil {
@@ -41,6 +44,7 @@ func (c *RackspaceSpotClient) ListCloudspaces(ctx context.Context, org string) (
 		if err != nil {
 			return nil, c.handleAPIError(err, "on-demand node pools", "", "list for cloudspace "+cs.Metadata.Name)
 		}
+
 		finalList.Items = append(finalList.Items, CloudSpace{
 			Name:                 cs.Metadata.Name,
 			Org:                  org,
@@ -85,7 +89,7 @@ func (c *RackspaceSpotClient) CreateCloudspace(ctx context.Context, cs CloudSpac
 		return fmt.Errorf("organization '%s' not found", cs.Org)
 	}
 
-	cloudspaceCreateRequestBody := CloudSpaceCreateRequestBody{
+	cloudspaceCreateReq := CloudSpaceCreateRequestBody{
 		APIVersion: "ngpc.rxt.io/v1",
 		Kind:       "CloudSpace",
 		Metadata: struct {
@@ -118,13 +122,10 @@ func (c *RackspaceSpotClient) CreateCloudspace(ctx context.Context, cs CloudSpac
 		},
 	}
 
-	body, err := json.Marshal(cloudspaceCreateRequestBody)
-	if err != nil {
-		return c.handleAPIError(err, "cloudspace", cs.Name, "create")
-	}
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/namespaces/%s/cloudspaces", c.BaseURL, orgID)
 
-	if err := c.doRequest(ctx, http.MethodPost, url, body, c.authHeader(), nil); err != nil {
+	var result CloudSpace
+	if err := c.doRequestJSON(ctx, http.MethodPost, url, cloudspaceCreateReq, &result, c.authHeader()); err != nil {
 		return c.handleAPIError(err, "cloudspace", cs.Name, "create")
 	}
 	return nil
@@ -139,17 +140,33 @@ func (c *RackspaceSpotClient) DeleteCloudspace(ctx context.Context, org, name st
 		return fmt.Errorf("invalid cloudspace name: %w", err)
 	}
 
+	klog.V(2).Infof("Deleting cloudspace %s in organization %s", name, org)
+
 	exists, orgID, err := c.getOrgIDIFExists(ctx, org)
 	if err != nil {
-		return c.handleAPIError(err, "organization", org, "find")
+		return c.handleAPIError(fmt.Errorf("failed to check if organization exists: %w", err), "organization", org, "find")
 	}
 	if !exists {
 		return fmt.Errorf("organization '%s' not found", org)
 	}
-	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/namespaces/%s/cloudspaces/%s", c.BaseURL, orgID, name)
-	err = c.doRequest(ctx, http.MethodDelete, url, nil, c.authHeader(), nil)
-	return c.handleAPIError(err, "cloudspace", name, "delete")
 
+	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/namespaces/%s/cloudspaces/%s", c.BaseURL, orgID, name)
+	klog.V(4).Infof("Sending DELETE request to %s", url)
+
+	// Use doRequestJSON to get better error handling
+	var response interface{}
+	err = c.doRequestJSON(ctx, http.MethodDelete, url, nil, &response, c.authHeader())
+	if err != nil {
+		// If it's a 404, the resource might already be deleted
+		if IsNotFound(err) {
+			klog.V(2).Infof("Cloudspace %s not found, assuming already deleted", name)
+			return nil
+		}
+		return c.handleAPIError(fmt.Errorf("API request failed: %w", err), "cloudspace", name, "delete")
+	}
+
+	klog.V(2).Infof("Successfully deleted cloudspace %s", name)
+	return nil
 }
 
 // GetCloudspace retrieves a cloudspace by name in the given namespace.
@@ -172,7 +189,7 @@ func (c *RackspaceSpotClient) GetCloudspace(ctx context.Context, org, name strin
 	var interm cloudSpaceGetResponse
 
 	// Pass &interm so doRequest will JSON unmarshal into it
-	err = c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &interm)
+	_, err = c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &interm)
 	if err != nil {
 		return nil, c.handleAPIError(err, "cloudspace", name, "get")
 	}
@@ -234,7 +251,7 @@ func (c *RackspaceSpotClient) GetCloudspaceConfig(ctx context.Context, namespace
 		return "", c.handleAPIError(err, "cloudspace", name, "get kubeconfig")
 	}
 	var kubeConfigResponse KubeConfigResponse
-	if err := c.doRequest(ctx, http.MethodPost, url, jsonBody, c.authHeader(), &kubeConfigResponse); err != nil {
+	if _, err := c.doRequest(ctx, http.MethodPost, url, jsonBody, c.authHeader(), &kubeConfigResponse); err != nil {
 		return "", c.handleAPIError(err, "cloudspace", name, "get kubeconfig")
 	}
 	return kubeConfigResponse.Data.Kubeconfig, nil

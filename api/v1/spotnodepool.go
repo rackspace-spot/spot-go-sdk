@@ -35,7 +35,7 @@ func (c *RackspaceSpotClient) ListSpotNodePools(ctx context.Context, org, clouds
 	)
 
 	var pool SpotNodePoolListResponse
-	if err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &pool); err != nil {
+	if _, err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &pool); err != nil {
 		return nil, c.handleAPIError(err, "spot node pool", cloudspaceName, "list")
 	}
 
@@ -121,7 +121,8 @@ func (c *RackspaceSpotClient) CreateSpotNodePool(ctx context.Context, org string
 		return err
 	}
 
-	err = c.doRequest(ctx, http.MethodPost, url, body, c.authHeader(), nil)
+	_, err = c.doRequest(ctx, http.MethodPost, url, body, c.authHeader(), nil)
+	fmt.Printf("error creating spotnodepool - %+v \n", err)
 	return c.handleAPIError(err, "spot node pool", pool.Name, "create")
 }
 
@@ -168,8 +169,7 @@ func (c *RackspaceSpotClient) UpdateSpotNodePool(ctx context.Context, org string
 		return fmt.Errorf("failed to marshal update body: %w", err)
 	}
 
-	var respBody interface{}
-	err = c.doRequest(ctx, http.MethodPatch, url, body, c.authHeader(), &respBody)
+	_, err = c.doRequest(ctx, http.MethodPatch, url, body, c.authHeader(), nil)
 	return c.handleAPIError(err, "spot node pool", pool.Name, "update")
 }
 
@@ -191,7 +191,7 @@ func (c *RackspaceSpotClient) DeleteSpotNodePool(ctx context.Context, org, name 
 	}
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/namespaces/%s/spotnodepools/%s", c.BaseURL, orgID, name)
 
-	err = c.doRequest(ctx, http.MethodDelete, url, nil, c.authHeader(), nil)
+	_, err = c.doRequest(ctx, http.MethodDelete, url, nil, c.authHeader(), nil)
 	return c.handleAPIError(err, "spot node pool", name, "delete")
 }
 
@@ -214,7 +214,7 @@ func (c *RackspaceSpotClient) GetSpotNodePool(ctx context.Context, org, name str
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/namespaces/%s/spotnodepools/%s", c.BaseURL, orgID, name)
 
 	var interm SpotNodePoolGetResponse
-	if err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &interm); err != nil {
+	if _, err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &interm); err != nil {
 		return nil, c.handleAPIError(err, "spot node pool", name, "get")
 	}
 
