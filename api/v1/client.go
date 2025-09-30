@@ -10,6 +10,9 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -19,8 +22,6 @@ import (
 
 // Config holds the configuration for the Rackspace Spot API client
 type Config struct {
-	BaseURL      string
-	OAuthURL     string
 	HTTPClient   *http.Client
 	AccessToken  string
 	RefreshToken string
@@ -34,24 +35,112 @@ type RackspaceSpotClient struct {
 	RefreshToken string
 }
 
+const (
+	BaseURL  = "https://spot.rackspace.com"
+	OAuthURL = "https://login.spot.rackspace.com"
+)
+
 type HTTPStatusError struct {
 	StatusCode int
 	Body       string
 }
 
-// NewSpotClient creates a new Rackspace Spot API client with secure defaults
+// ConfigFromFile represents the structure of the spot config file
+type ConfigFromFile struct {
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
+	Org          string `json:"org"`
+	Region       string `json:"region"`
+}
+
+// NewSpotClient creates a new Rackspace Spot API client with secure defaults.
 func NewSpotClient(cfg *Config) (*RackspaceSpotClient, error) {
-	if cfg.BaseURL == "" {
-		return nil, fmt.Errorf("base URL is required")
+	if cfg == nil {
+		cfg = &Config{}
 	}
 
-	return &RackspaceSpotClient{
-		BaseURL:      cfg.BaseURL,
-		OAuthURL:     cfg.OAuthURL,
-		HTTPClient:   cfg.HTTPClient,
-		Token:        cfg.AccessToken,
-		RefreshToken: cfg.RefreshToken,
-	}, nil
+	// Initialize URLs from config, environment, or defaults
+	baseURL := os.Getenv("RXTSPOT_BASE_URL")
+	oauthURL := os.Getenv("RXTSPOT_OAUTH_URL")
+
+	if baseURL == "" {
+		baseURL = BaseURL
+	}
+	if oauthURL == "" {
+		oauthURL = OAuthURL
+	}
+
+	// Initialize HTTP client if not provided
+	httpClient := cfg.HTTPClient
+	if httpClient == nil {
+		httpClient = &http.Client{
+			Timeout: 30 * time.Second,
+		}
+	}
+
+	// Create the client
+	client := &RackspaceSpotClient{
+		BaseURL:    baseURL,
+		OAuthURL:   oauthURL,
+		HTTPClient: httpClient,
+	}
+
+	// Handle authentication
+	// 1. Check for access token in config
+	if cfg.RefreshToken != "" {
+		client.RefreshToken = cfg.RefreshToken
+	} else {
+		return nil, fmt.Errorf("no refresh token found")
+	}
+
+	// 2. Check for refresh token in config
+
+	token, err := client.Authenticate(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("RAJENDRA authentication failed: %w", err)
+	}
+	client.Token = token
+	fmt.Printf("Authenticated with refresh token: %s\n", cfg.RefreshToken)
+	return client, nil
+}
+
+// getSpotConfigPath returns the path to the spot config file
+func getSpotConfigPath() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current user: %w", err)
+	}
+	return filepath.Join(usr.HomeDir, ".spot_config"), nil
+}
+
+// updateSpotConfig updates the spot config file with a new access token
+func updateSpotConfig(cfg ConfigFromFile, newToken string) error {
+	// Update the access token
+	cfg.AccessToken = newToken
+
+	// Marshal the config
+	configData, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal spot config: %w", err)
+	}
+
+	// Write to the config file
+	configPath, err := getSpotConfigPath()
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(configPath, configData, 0600)
+}
+
+// firstNonEmpty returns the first non-empty string from the provided values
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func (e *HTTPStatusError) Error() string {
