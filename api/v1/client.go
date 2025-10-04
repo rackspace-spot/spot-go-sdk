@@ -22,6 +22,8 @@ import (
 
 // Config holds the configuration for the Rackspace Spot API client
 type Config struct {
+	BaseURL      string
+	OAuthURL     string
 	HTTPClient   *http.Client
 	AccessToken  string
 	RefreshToken string
@@ -80,9 +82,10 @@ func NewSpotClient(cfg *Config) (*RackspaceSpotClient, error) {
 
 	// Create the client
 	client := &RackspaceSpotClient{
-		BaseURL:    baseURL,
-		OAuthURL:   oauthURL,
-		HTTPClient: httpClient,
+		BaseURL:      baseURL,
+		OAuthURL:     oauthURL,
+		HTTPClient:   httpClient,
+		RefreshToken: cfg.RefreshToken,
 	}
 
 	// Handle authentication
@@ -94,7 +97,7 @@ func NewSpotClient(cfg *Config) (*RackspaceSpotClient, error) {
 	}
 
 	// 2. Check for refresh token in config
-
+	fmt.Printf("client: %+v\n", client)
 	token, err := client.Authenticate(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("RAJENDRA authentication failed: %w", err)

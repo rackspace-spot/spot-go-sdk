@@ -1,16 +1,20 @@
 package rxtspot
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	"k8s.io/klog/v2"
 )
 
 // JWTClaims represents the standard JWT claims we care about
@@ -73,14 +77,24 @@ func (c *RackspaceSpotClient) Authenticate(ctx context.Context) (string, error) 
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	fmt.Printf("req: %+v\n", req)
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("request failed: %w", err)
 	}
+	fmt.Printf("resp: %+v\n", resp)
 	defer resp.Body.Close()
+	
+	// Read the response body for error details
+	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("authentication failed: %s", resp.Status)
+		klog.Errorf("Authentication failed with status %d: %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("authentication failed: %s - %s", resp.Status, string(body))
 	}
+	
+	// For successful responses, we need to use the body for token parsing
+	// So we'll create a new reader for the body since we've already read it
+	resp.Body = io.NopCloser(bytes.NewReader(body))
 
 	var tokenResp struct {
 		IDToken string `json:"id_token"`
@@ -88,6 +102,7 @@ func (c *RackspaceSpotClient) Authenticate(ctx context.Context) (string, error) 
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return "", fmt.Errorf("failed to decode response: %w", err)
 	}
+	fmt.Printf("tokenResp: %+v\n", tokenResp)
 	if tokenResp.IDToken == "" {
 		return "", errors.New("no id_token in authentication response")
 	}
