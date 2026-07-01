@@ -217,7 +217,16 @@ func (c *RackspaceSpotClient) GetCloudspaceConfig(ctx context.Context, namespace
 		return "", fmt.Errorf("invalid cloudspace name: %w", err)
 	}
 	if c.RefreshToken == "" {
-		return "", fmt.Errorf("refresh token is required")
+		if c.Token == "" {
+			return "", fmt.Errorf("refresh token is required")
+		}
+		// use the authenticated API when refresh token is missing
+		url := fmt.Sprintf("%s/apis/auth.ngpc.rxt.io/v1/cloudspaces/%s/generate-kubeconfig", c.BaseURL, name)
+		var kubeConfigResponse KubeConfigResponse
+		if err := c.doRequest(ctx, http.MethodGet, url, nil, c.authHeader(), &kubeConfigResponse); err != nil {
+			return "", c.handleAPIError(err, "cloudspace", name, "get kubeconfig")
+		}
+		return kubeConfigResponse.Data.Kubeconfig, nil
 	}
 	url := fmt.Sprintf("%s/apis/auth.ngpc.rxt.io/v1/generate-kubeconfig", c.BaseURL)
 	reqBody := struct {
