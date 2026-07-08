@@ -60,6 +60,7 @@ func (c *RackspaceSpotClient) ListOnDemandNodePools(ctx context.Context, org, cl
 			WonCount:             item.Status.ReservedCount,
 			Status:               item.Status.ReservedStatus,
 			OnDemandPricePerHour: onDemandPoolcost,
+			Autoscaling:          autoscalingFromRO(item.Spec.Autoscaling),
 		})
 	}
 	return finalList, nil
@@ -109,12 +110,15 @@ func (c *RackspaceSpotClient) CreateOnDemandNodePool(ctx context.Context, org st
 				CustomLabels:      pool.CustomLabels,
 				CustomTaints:      pool.CustomTaints,
 			},
-			Autoscaling: AutoscalingAny{
-				Enabled:  pool.Autoscaling.Enabled,
-				MinNodes: pool.Autoscaling.MinNodes,
-				MaxNodes: pool.Autoscaling.MaxNodes,
-			},
+			Autoscaling: AutoscalingAny{MinNodes: 0, MaxNodes: 0},
 		},
+	}
+	if pool.Autoscaling != nil {
+		ondemandNodePoolCreateRequestBody.Spec.Autoscaling = AutoscalingAny{
+			Enabled:  pool.Autoscaling.Enabled,
+			MinNodes: pool.Autoscaling.MinNodes,
+			MaxNodes: pool.Autoscaling.MaxNodes,
+		}
 	}
 
 	body, err := json.Marshal(ondemandNodePoolCreateRequestBody)
@@ -196,6 +200,7 @@ func (c *RackspaceSpotClient) GetOnDemandNodePool(ctx context.Context, org, name
 		WonCount:             interm.Status.ReservedCount,
 		Status:               interm.Status.ReservedStatus,
 		OnDemandPricePerHour: serverClass.OnDemandPricePerHour,
+		Autoscaling:          autoscalingFromRO(interm.Spec.Autoscaling),
 	}, nil
 }
 
@@ -220,20 +225,23 @@ func (c *RackspaceSpotClient) UpdateOnDemandNodePool(ctx context.Context, org st
 	}
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/namespaces/%s/ondemandnodepools/%s", c.BaseURL, orgID, pool.Name)
 
-    // Only include mutable fields in the update request
-    updateBody := OnDemandNodePoolUpdateRequestBody{
-        Spec: OnDemandNodePoolUpdateSpec{
-            Desired:           pool.Desired,
-            CustomAnnotations: pool.CustomAnnotations,
-            CustomLabels:      pool.CustomLabels,
-            CustomTaints:      pool.CustomTaints,
-            Autoscaling: AutoscalingInt64Update{
-                Enabled:  pool.Autoscaling.Enabled,
-                MinNodes: int64(pool.Autoscaling.MinNodes),
-                MaxNodes: int64(pool.Autoscaling.MaxNodes),
-            },
-        },
-    }
+	// Only include mutable fields in the update request
+	updateBody := OnDemandNodePoolUpdateRequestBody{
+		Spec: OnDemandNodePoolUpdateSpec{
+			Desired:           pool.Desired,
+			CustomAnnotations: pool.CustomAnnotations,
+			CustomLabels:      pool.CustomLabels,
+			CustomTaints:      pool.CustomTaints,
+		},
+	}
+	// merge-patch: omit autoscaling entirely when unset so server state is untouched
+	if pool.Autoscaling != nil {
+		updateBody.Spec.Autoscaling = &AutoscalingInt64Update{
+			Enabled:  pool.Autoscaling.Enabled,
+			MinNodes: pool.Autoscaling.MinNodes,
+			MaxNodes: pool.Autoscaling.MaxNodes,
+		}
+	}
 
 	body, err := json.Marshal(updateBody)
 	if err != nil {
