@@ -80,7 +80,6 @@ type OnDemandNodePool struct {
 	CustomLabels         map[string]string `json:"customLabels,omitempty" yaml:"customLabels,omitempty"`
 	CustomTaints         []interface{}     `json:"customTaints,omitempty" yaml:"customTaints,omitempty"`
 	OnDemandPricePerHour string            `json:"onDemandPricePerHour,omitempty" yaml:"onDemandPricePerHour,omitempty"`
-	Autoscaling          *Autoscaling      `json:"autoscaling,omitempty" yaml:"autoscaling,omitempty"`
 	Status               string            `json:"status,omitempty" yaml:"status,omitempty"`
 }
 

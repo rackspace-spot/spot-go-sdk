@@ -60,7 +60,6 @@ func (c *RackspaceSpotClient) ListOnDemandNodePools(ctx context.Context, org, cl
 			WonCount:             item.Status.ReservedCount,
 			Status:               item.Status.ReservedStatus,
 			OnDemandPricePerHour: onDemandPoolcost,
-			Autoscaling:          autoscalingFromRO(item.Spec.Autoscaling),
 		})
 	}
 	return finalList, nil
@@ -110,15 +109,7 @@ func (c *RackspaceSpotClient) CreateOnDemandNodePool(ctx context.Context, org st
 				CustomLabels:      pool.CustomLabels,
 				CustomTaints:      pool.CustomTaints,
 			},
-			Autoscaling: AutoscalingAny{MinNodes: 0, MaxNodes: 0},
 		},
-	}
-	if pool.Autoscaling != nil {
-		ondemandNodePoolCreateRequestBody.Spec.Autoscaling = AutoscalingAny{
-			Enabled:  pool.Autoscaling.Enabled,
-			MinNodes: pool.Autoscaling.MinNodes,
-			MaxNodes: pool.Autoscaling.MaxNodes,
-		}
 	}
 
 	body, err := json.Marshal(ondemandNodePoolCreateRequestBody)
@@ -200,7 +191,6 @@ func (c *RackspaceSpotClient) GetOnDemandNodePool(ctx context.Context, org, name
 		WonCount:             interm.Status.ReservedCount,
 		Status:               interm.Status.ReservedStatus,
 		OnDemandPricePerHour: serverClass.OnDemandPricePerHour,
-		Autoscaling:          autoscalingFromRO(interm.Spec.Autoscaling),
 	}, nil
 }
 
@@ -233,14 +223,6 @@ func (c *RackspaceSpotClient) UpdateOnDemandNodePool(ctx context.Context, org st
 			CustomLabels:      pool.CustomLabels,
 			CustomTaints:      pool.CustomTaints,
 		},
-	}
-	// merge-patch: omit autoscaling entirely when unset so server state is untouched
-	if pool.Autoscaling != nil {
-		updateBody.Spec.Autoscaling = &AutoscalingInt64Update{
-			Enabled:  pool.Autoscaling.Enabled,
-			MinNodes: pool.Autoscaling.MinNodes,
-			MaxNodes: pool.Autoscaling.MaxNodes,
-		}
 	}
 
 	body, err := json.Marshal(updateBody)

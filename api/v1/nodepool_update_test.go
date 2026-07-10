@@ -85,55 +85,41 @@ func TestUpdateNodePoolAutoscalingPatchBody(t *testing.T) {
 		},
 	}
 
-	updaters := map[string]func(c *RackspaceSpotClient, autoscaling *Autoscaling) error{
-		"spot": func(c *RackspaceSpotClient, autoscaling *Autoscaling) error {
-			return c.UpdateSpotNodePool(context.Background(), "testorg", SpotNodePool{
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var captured []byte
+			client := newPatchCaptureClient(t, &captured)
+
+			err := client.UpdateSpotNodePool(context.Background(), "testorg", SpotNodePool{
 				Name:        "pool-1",
 				Desired:     3,
-				Autoscaling: autoscaling,
+				Autoscaling: tc.autoscaling,
 			})
-		},
-		"ondemand": func(c *RackspaceSpotClient, autoscaling *Autoscaling) error {
-			return c.UpdateOnDemandNodePool(context.Background(), "testorg", OnDemandNodePool{
-				Name:        "pool-1",
-				Desired:     3,
-				Autoscaling: autoscaling,
-			})
-		},
-	}
+			if err != nil {
+				t.Fatalf("update failed: %v", err)
+			}
+			if captured == nil {
+				t.Fatal("no PATCH request captured")
+			}
 
-	for poolType, update := range updaters {
-		for _, tc := range cases {
-			t.Run(poolType+"/"+tc.name, func(t *testing.T) {
-				var captured []byte
-				client := newPatchCaptureClient(t, &captured)
-
-				if err := update(client, tc.autoscaling); err != nil {
-					t.Fatalf("update failed: %v", err)
+			got, present := specAutoscaling(t, captured)
+			if tc.want == nil {
+				if present {
+					t.Errorf("expected autoscaling omitted from patch body, got %s", captured)
 				}
-				if captured == nil {
-					t.Fatal("no PATCH request captured")
+				return
+			}
+			if !present {
+				t.Fatalf("expected autoscaling in patch body, got %s", captured)
+			}
+			if len(got) != len(tc.want) {
+				t.Errorf("autoscaling = %v, want %v", got, tc.want)
+			}
+			for k, v := range tc.want {
+				if got[k] != v {
+					t.Errorf("autoscaling[%q] = %v, want %v", k, got[k], v)
 				}
-
-				got, present := specAutoscaling(t, captured)
-				if tc.want == nil {
-					if present {
-						t.Errorf("expected autoscaling omitted from patch body, got %s", captured)
-					}
-					return
-				}
-				if !present {
-					t.Fatalf("expected autoscaling in patch body, got %s", captured)
-				}
-				if len(got) != len(tc.want) {
-					t.Errorf("autoscaling = %v, want %v", got, tc.want)
-				}
-				for k, v := range tc.want {
-					if got[k] != v {
-						t.Errorf("autoscaling[%q] = %v, want %v", k, got[k], v)
-					}
-				}
-			})
-		}
+			}
+		})
 	}
 }

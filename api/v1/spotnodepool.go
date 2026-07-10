@@ -160,7 +160,6 @@ func (c *RackspaceSpotClient) UpdateSpotNodePool(ctx context.Context, org string
 			CustomTaints:      pool.CustomTaints,
 		},
 	}
-	// merge-patch: omit autoscaling entirely when unset so server state is untouched
 	if pool.Autoscaling != nil {
 		updateBody.Spec.Autoscaling = &AutoscalingInt64Update{
 			Enabled:  pool.Autoscaling.Enabled,
