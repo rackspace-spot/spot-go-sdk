@@ -36,6 +36,15 @@ type SpotNodePoolList struct {
 	Items []SpotNodePool `json:"spotNodepools" yaml:"spotNodepools"`
 }
 
+// Autoscaling holds node pool autoscaler settings. On updates a nil pointer
+// leaves server-side autoscaling unchanged; a non-nil value is applied as-is
+// (use &Autoscaling{Enabled: false} to explicitly disable).
+type Autoscaling struct {
+	Enabled  bool  `json:"enabled" yaml:"enabled"`
+	MinNodes int64 `json:"minNodes" yaml:"minNodes"`
+	MaxNodes int64 `json:"maxNodes" yaml:"maxNodes"`
+}
+
 // SpotNodePool represents a spot node pool configuration
 type SpotNodePool struct {
 	Name              string            `json:"name" yaml:"name"`
@@ -48,13 +57,9 @@ type SpotNodePool struct {
 	CustomAnnotations map[string]string `json:"customAnnotations,omitempty" yaml:"customAnnotations,omitempty"`
 	CustomLabels      map[string]string `json:"customLabels,omitempty" yaml:"customLabels,omitempty"`
 	CustomTaints      []interface{}     `json:"customTaints,omitempty" yaml:"customTaints,omitempty"`
-	Autoscaling       struct {
-		Enabled  bool  `json:"enabled" yaml:"enabled"`
-		MinNodes int64 `json:"minNodes" yaml:"minNodes"`
-		MaxNodes int64 `json:"maxNodes" yaml:"maxNodes"`
-	} `json:"autoscaling" yaml:"autoscaling"`
-	BidPrice string `json:"bidPrice,omitempty" yaml:"bidPrice,omitempty"`
-	Status   string `json:"status,omitempty" yaml:"status,omitempty"`
+	Autoscaling       *Autoscaling      `json:"autoscaling,omitempty" yaml:"autoscaling,omitempty"`
+	BidPrice          string            `json:"bidPrice,omitempty" yaml:"bidPrice,omitempty"`
+	Status            string            `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
 // OnDemandNodePoolList represents a list of on-demand node pools
@@ -75,12 +80,7 @@ type OnDemandNodePool struct {
 	CustomLabels         map[string]string `json:"customLabels,omitempty" yaml:"customLabels,omitempty"`
 	CustomTaints         []interface{}     `json:"customTaints,omitempty" yaml:"customTaints,omitempty"`
 	OnDemandPricePerHour string            `json:"onDemandPricePerHour,omitempty" yaml:"onDemandPricePerHour,omitempty"`
-	Autoscaling          struct {
-		Enabled  bool `json:"enabled" yaml:"enabled"`
-		MinNodes int  `json:"minNodes" yaml:"minNodes"`
-		MaxNodes int  `json:"maxNodes" yaml:"maxNodes"`
-	} `json:"autoscaling" yaml:"autoscaling"`
-	Status string `json:"status,omitempty" yaml:"status,omitempty"`
+	Status               string            `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
 type OrganizationList struct {

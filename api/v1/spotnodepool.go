@@ -54,6 +54,7 @@ func (c *RackspaceSpotClient) ListSpotNodePools(ctx context.Context, org, clouds
 			BidPrice:          "$" + item.Spec.BidPrice,
 			WonCount:          item.Status.WonCount,
 			Status:            item.Status.BidStatus,
+			Autoscaling:       autoscalingFromRO(item.Spec.Autoscaling),
 		})
 	}
 	return finalList, nil
@@ -108,12 +109,14 @@ func (c *RackspaceSpotClient) CreateSpotNodePool(ctx context.Context, org string
 				CustomTaints:      pool.CustomTaints,
 			},
 			BidPrice: pool.BidPrice,
-			Autoscaling: AutoscalingInt64{
-				Enabled:  pool.Autoscaling.Enabled,
-				MinNodes: pool.Autoscaling.MinNodes,
-				MaxNodes: pool.Autoscaling.MaxNodes,
-			},
 		},
+	}
+	if pool.Autoscaling != nil {
+		spotNodePoolCreateRequestBody.Spec.Autoscaling = AutoscalingInt64{
+			Enabled:  pool.Autoscaling.Enabled,
+			MinNodes: pool.Autoscaling.MinNodes,
+			MaxNodes: pool.Autoscaling.MaxNodes,
+		}
 	}
 
 	body, err := json.Marshal(spotNodePoolCreateRequestBody)
@@ -155,12 +158,14 @@ func (c *RackspaceSpotClient) UpdateSpotNodePool(ctx context.Context, org string
 			CustomAnnotations: pool.CustomAnnotations,
 			CustomLabels:      pool.CustomLabels,
 			CustomTaints:      pool.CustomTaints,
-			Autoscaling: AutoscalingInt64Update{
-				Enabled:  pool.Autoscaling.Enabled,
-				MinNodes: pool.Autoscaling.MinNodes,
-				MaxNodes: pool.Autoscaling.MaxNodes,
-			},
 		},
+	}
+	if pool.Autoscaling != nil {
+		updateBody.Spec.Autoscaling = &AutoscalingInt64Update{
+			Enabled:  pool.Autoscaling.Enabled,
+			MinNodes: pool.Autoscaling.MinNodes,
+			MaxNodes: pool.Autoscaling.MaxNodes,
+		}
 	}
 
 	body, err := json.Marshal(updateBody)
@@ -234,5 +239,14 @@ func (c *RackspaceSpotClient) GetSpotNodePool(ctx context.Context, org, name str
 		BidPrice:          "$" + interm.Spec.BidPrice,
 		WonCount:          interm.Status.WonCount,
 		Status:            interm.Status.BidStatus,
+		Autoscaling:       autoscalingFromRO(interm.Spec.Autoscaling),
 	}, nil
+}
+
+func autoscalingFromRO(ro SpotNodePoolAutoscalingRO) *Autoscaling {
+	return &Autoscaling{
+		Enabled:  ro.Enabled,
+		MinNodes: int64(ro.MinNodes),
+		MaxNodes: int64(ro.MaxNodes),
+	}
 }

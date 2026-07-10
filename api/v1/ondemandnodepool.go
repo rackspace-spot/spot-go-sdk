@@ -109,11 +109,6 @@ func (c *RackspaceSpotClient) CreateOnDemandNodePool(ctx context.Context, org st
 				CustomLabels:      pool.CustomLabels,
 				CustomTaints:      pool.CustomTaints,
 			},
-			Autoscaling: AutoscalingAny{
-				Enabled:  pool.Autoscaling.Enabled,
-				MinNodes: pool.Autoscaling.MinNodes,
-				MaxNodes: pool.Autoscaling.MaxNodes,
-			},
 		},
 	}
 
@@ -220,20 +215,15 @@ func (c *RackspaceSpotClient) UpdateOnDemandNodePool(ctx context.Context, org st
 	}
 	url := fmt.Sprintf("%s/apis/ngpc.rxt.io/v1/namespaces/%s/ondemandnodepools/%s", c.BaseURL, orgID, pool.Name)
 
-    // Only include mutable fields in the update request
-    updateBody := OnDemandNodePoolUpdateRequestBody{
-        Spec: OnDemandNodePoolUpdateSpec{
-            Desired:           pool.Desired,
-            CustomAnnotations: pool.CustomAnnotations,
-            CustomLabels:      pool.CustomLabels,
-            CustomTaints:      pool.CustomTaints,
-            Autoscaling: AutoscalingInt64Update{
-                Enabled:  pool.Autoscaling.Enabled,
-                MinNodes: int64(pool.Autoscaling.MinNodes),
-                MaxNodes: int64(pool.Autoscaling.MaxNodes),
-            },
-        },
-    }
+	// Only include mutable fields in the update request
+	updateBody := OnDemandNodePoolUpdateRequestBody{
+		Spec: OnDemandNodePoolUpdateSpec{
+			Desired:           pool.Desired,
+			CustomAnnotations: pool.CustomAnnotations,
+			CustomLabels:      pool.CustomLabels,
+			CustomTaints:      pool.CustomTaints,
+		},
+	}
 
 	body, err := json.Marshal(updateBody)
 	if err != nil {

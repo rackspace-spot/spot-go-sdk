@@ -193,12 +193,6 @@ type AutoscalingInt64 struct {
 	MaxNodes int64 `json:"maxNodes"`
 }
 
-type AutoscalingAny struct {
-	Enabled  bool `json:"enabled"`
-	MinNodes any  `json:"minNodes"`
-	MaxNodes any  `json:"maxNodes"`
-}
-
 type SpotNodePoolSpec struct {
 	CommonNodePoolSpec
 	BidPrice    string           `json:"bidPrice"`
@@ -238,7 +232,6 @@ type SpotNodePoolListResponse struct {
 
 type OnDemandNodePoolSpec struct {
 	CommonNodePoolSpec
-	Autoscaling AutoscalingAny `json:"autoscaling"`
 }
 
 type OnDemandNodePoolCreateRequestBody struct {
@@ -255,20 +248,19 @@ type AutoscalingInt64Update struct {
 }
 
 type SpotNodePoolUpdateSpec struct {
-	Desired           int                    `json:"desired,omitempty"`
-	BidPrice          string                 `json:"bidPrice,omitempty"`
-	CustomAnnotations map[string]string      `json:"customAnnotations,omitempty"`
-	CustomLabels      map[string]string      `json:"customLabels,omitempty"`
-	CustomTaints      []interface{}          `json:"customTaints,omitempty"`
-	Autoscaling       AutoscalingInt64Update `json:"autoscaling"`
+	Desired           int                     `json:"desired,omitempty"`
+	BidPrice          string                  `json:"bidPrice,omitempty"`
+	CustomAnnotations map[string]string       `json:"customAnnotations,omitempty"`
+	CustomLabels      map[string]string       `json:"customLabels,omitempty"`
+	CustomTaints      []interface{}           `json:"customTaints,omitempty"`
+	Autoscaling       *AutoscalingInt64Update `json:"autoscaling,omitempty"`
 }
 
 type OnDemandNodePoolUpdateSpec struct {
-	Desired           int                    `json:"desired,omitempty"`
-	CustomAnnotations map[string]string      `json:"customAnnotations,omitempty"`
-	CustomLabels      map[string]string      `json:"customLabels,omitempty"`
-	CustomTaints      []interface{}          `json:"customTaints,omitempty"`
-	Autoscaling       AutoscalingInt64Update `json:"autoscaling"`
+	Desired           int               `json:"desired,omitempty"`
+	CustomAnnotations map[string]string `json:"customAnnotations,omitempty"`
+	CustomLabels      map[string]string `json:"customLabels,omitempty"`
+	CustomTaints      []interface{}     `json:"customTaints,omitempty"`
 }
 
 type SpotNodePoolUpdateRequestBody struct {
