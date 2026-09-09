@@ -20,6 +20,7 @@ type CloudSpace struct {
 	AssignedServers      map[string]AssignedServer `json:"assignedServers,omitempty" yaml:"assignedServers,omitempty"`
 	SpotNodepools        []*SpotNodePool           `json:"spotNodepools,omitempty" yaml:"spotNodepools,omitempty"`
 	OnDemandNodePools    []*OnDemandNodePool       `json:"ondemandNodepools,omitempty" yaml:"ondemandNodepools,omitempty"`
+	AutopilotNodePools   []*AutopilotNodePool      `json:"autopilotNodepools,omitempty" yaml:"autopilotNodepools,omitempty"`
 	Status               string                    `json:"status,omitempty" yaml:"status,omitempty"`
 	Message              string                    `json:"message,omitempty"`
 }
@@ -55,6 +56,71 @@ type SpotNodePool struct {
 	} `json:"autoscaling" yaml:"autoscaling"`
 	BidPrice string `json:"bidPrice,omitempty" yaml:"bidPrice,omitempty"`
 	Status   string `json:"status,omitempty" yaml:"status,omitempty"`
+}
+
+// AutopilotNodePoolList represents a list of autopilot node pools
+type AutopilotNodePoolList struct {
+	Items []AutopilotNodePool `json:"autopilotNodepools" yaml:"autopilotNodepools"`
+}
+
+// AutopilotNodePool represents an autopilot node pool configuration. Unlike SpotNodePool
+// (an exact bid for one server class), it takes a total vCPU target and an hourly budget
+// ceiling, and the control plane bids across eligible server classes to fill it.
+type AutopilotNodePool struct {
+	Name               string            `json:"name" yaml:"name"`
+	CreationTimestamp  time.Time         `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
+	Org                string            `json:"org,omitempty" yaml:"org,omitempty"`
+	Cloudspace         string            `json:"cloudspace,omitempty" yaml:"cloudspace,omitempty"`
+	Region             string            `json:"region,omitempty" yaml:"region,omitempty"`
+	VCPUTotal          int               `json:"vcpuTotal,omitempty" yaml:"vcpuTotal,omitempty"`
+	VCPUPerNodeMin     int               `json:"vcpuPerNodeMin,omitempty" yaml:"vcpuPerNodeMin,omitempty"`
+	VCPUPerNodeMax     int               `json:"vcpuPerNodeMax,omitempty" yaml:"vcpuPerNodeMax,omitempty"`
+	MemoryPerVCPU      string            `json:"memoryPerVCPU,omitempty" yaml:"memoryPerVCPU,omitempty"`
+	BudgetPerHour      string            `json:"budgetPerHour,omitempty" yaml:"budgetPerHour,omitempty"`
+	AllocationStrategy string            `json:"allocationStrategy,omitempty" yaml:"allocationStrategy,omitempty"`
+	CustomAnnotations  map[string]string `json:"customAnnotations,omitempty" yaml:"customAnnotations,omitempty"`
+	CustomLabels       map[string]string `json:"customLabels,omitempty" yaml:"customLabels,omitempty"`
+	CustomTaints       []interface{}     `json:"customTaints,omitempty" yaml:"customTaints,omitempty"`
+
+	Phase              string                      `json:"phase,omitempty" yaml:"phase,omitempty"`
+	TargetVCPUs        int                         `json:"targetVCPUs,omitempty" yaml:"targetVCPUs,omitempty"`
+	ManagedVCPUs       int                         `json:"managedVCPUs,omitempty" yaml:"managedVCPUs,omitempty"`
+	ManagedMemoryGB    string                      `json:"managedMemoryGB,omitempty" yaml:"managedMemoryGB,omitempty"`
+	Allocations        []AutopilotAllocation       `json:"allocations,omitempty" yaml:"allocations,omitempty"`
+	ClassStates        []AutopilotClassState       `json:"classStates,omitempty" yaml:"classStates,omitempty"`
+	AllocationsHistory []AutopilotAllocationRecord `json:"allocationsHistory,omitempty" yaml:"allocationsHistory,omitempty"`
+}
+
+// AutopilotAllocation is the per-server-class breakdown of what an autopilot pool is managing.
+type AutopilotAllocation struct {
+	ServerClass        string `json:"serverClass" yaml:"serverClass"`
+	SpotNodePool       string `json:"spotNodePool,omitempty" yaml:"spotNodePool,omitempty"`
+	MarketPricePerHour string `json:"marketPricePerHour" yaml:"marketPricePerHour"`
+	BidPricePerHour    string `json:"bidPricePerHour" yaml:"bidPricePerHour"`
+	VCPUPerNode        int    `json:"vcpuPerNode" yaml:"vcpuPerNode"`
+	MemoryGBPerNode    string `json:"memoryGBPerNode,omitempty" yaml:"memoryGBPerNode,omitempty"`
+	DesiredNodes       int    `json:"desiredNodes" yaml:"desiredNodes"`
+	WonNodes           int    `json:"wonNodes" yaml:"wonNodes"`
+}
+
+// AutopilotClassState records the most recent bid outcome for one server class.
+type AutopilotClassState struct {
+	ServerClass     string     `json:"serverClass" yaml:"serverClass"`
+	LastOutcome     string     `json:"lastOutcome" yaml:"lastOutcome"`
+	LastAttemptTime time.Time  `json:"lastAttemptTime,omitempty" yaml:"lastAttemptTime,omitempty"`
+	CooldownUntil   *time.Time `json:"cooldownUntil,omitempty" yaml:"cooldownUntil,omitempty"`
+}
+
+// AutopilotAllocationRecord is one entry in an autopilot pool's audit trail.
+type AutopilotAllocationRecord struct {
+	Time            time.Time `json:"time" yaml:"time"`
+	ServerClass     string    `json:"serverClass" yaml:"serverClass"`
+	SpotNodePool    string    `json:"spotNodePool,omitempty" yaml:"spotNodePool,omitempty"`
+	Event           string    `json:"event" yaml:"event"`
+	Reason          string    `json:"reason,omitempty" yaml:"reason,omitempty"`
+	DesiredNodes    int       `json:"desiredNodes" yaml:"desiredNodes"`
+	WonNodes        int       `json:"wonNodes" yaml:"wonNodes"`
+	BidPricePerHour string    `json:"bidPricePerHour,omitempty" yaml:"bidPricePerHour,omitempty"`
 }
 
 // OnDemandNodePoolList represents a list of on-demand node pools

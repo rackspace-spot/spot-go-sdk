@@ -140,6 +140,129 @@ type RegionSpec struct {
 	} `json:"provider"`
 }
 
+// Autopilot node pool read-only spec and status
+type VCPUTargetRO struct {
+	Total int `json:"total"`
+}
+
+type VCPUPerNodeRangeRO struct {
+	Min int `json:"min,omitempty"`
+	Max int `json:"max,omitempty"`
+}
+
+type AutopilotNodePoolSpecReadOnly struct {
+	Region             string             `json:"region"`
+	CloudSpace         string             `json:"cloudSpace"`
+	VCPU               VCPUTargetRO       `json:"vcpu"`
+	VCPUPerNode        VCPUPerNodeRangeRO `json:"vcpuPerNode,omitempty"`
+	MemoryPerVCPU      string             `json:"memoryPerVCPU,omitempty"`
+	BudgetPerHour      string             `json:"budgetPerHour"`
+	AllocationStrategy string             `json:"allocationStrategy,omitempty"`
+	CustomAnnotations  map[string]string  `json:"customAnnotations,omitempty"`
+	CustomLabels       map[string]string  `json:"customLabels,omitempty"`
+	CustomTaints       []interface{}      `json:"customTaints,omitempty"`
+}
+
+type AutopilotAllocationRO struct {
+	ServerClass        string `json:"serverClass"`
+	SpotNodePool       string `json:"spotNodePool,omitempty"`
+	MarketPricePerHour string `json:"marketPricePerHour"`
+	BidPricePerHour    string `json:"bidPricePerHour"`
+	VCPUPerNode        int    `json:"vcpuPerNode"`
+	MemoryGBPerNode    string `json:"memoryGBPerNode,omitempty"`
+	DesiredNodes       int    `json:"desiredNodes"`
+	WonNodes           int    `json:"wonNodes"`
+}
+
+type AutopilotClassStateRO struct {
+	ServerClass     string     `json:"serverClass"`
+	LastOutcome     string     `json:"lastOutcome"`
+	LastAttemptTime time.Time  `json:"lastAttemptTime,omitempty"`
+	CooldownUntil   *time.Time `json:"cooldownUntil,omitempty"`
+}
+
+type AutopilotAllocationRecordRO struct {
+	Time            time.Time `json:"time"`
+	ServerClass     string    `json:"serverClass"`
+	SpotNodePool    string    `json:"spotNodePool,omitempty"`
+	Event           string    `json:"event"`
+	Reason          string    `json:"reason,omitempty"`
+	DesiredNodes    int       `json:"desiredNodes"`
+	WonNodes        int       `json:"wonNodes"`
+	BidPricePerHour string    `json:"bidPricePerHour,omitempty"`
+}
+
+type AutopilotNodePoolStatus struct {
+	Phase              string                        `json:"phase,omitempty"`
+	TargetVCPUs        int                           `json:"targetVCPUs,omitempty"`
+	ManagedVCPUs       int                           `json:"managedVCPUs,omitempty"`
+	ManagedMemoryGB    string                        `json:"managedMemoryGB,omitempty"`
+	Allocations        []AutopilotAllocationRO       `json:"allocations,omitempty"`
+	ClassStates        []AutopilotClassStateRO       `json:"classStates,omitempty"`
+	AllocationsHistory []AutopilotAllocationRecordRO `json:"allocationsHistory,omitempty"`
+}
+
+type AutopilotNodePoolGetResponse struct {
+	APIVersion string                        `json:"apiVersion"`
+	Kind       string                        `json:"kind"`
+	Metadata   ResourceMetadataWithTimestamp `json:"metadata"`
+	Spec       AutopilotNodePoolSpecReadOnly `json:"spec"`
+	Status     AutopilotNodePoolStatus       `json:"status"`
+}
+
+type AutopilotNodePoolSpec struct {
+	Region             string             `json:"region"`
+	CloudSpace         string             `json:"cloudSpace"`
+	VCPU               VCPUTargetRO       `json:"vcpu"`
+	VCPUPerNode        VCPUPerNodeRangeRO `json:"vcpuPerNode,omitempty"`
+	MemoryPerVCPU      string             `json:"memoryPerVCPU,omitempty"`
+	BudgetPerHour      string             `json:"budgetPerHour"`
+	AllocationStrategy string             `json:"allocationStrategy,omitempty"`
+	CustomAnnotations  map[string]string  `json:"customAnnotations,omitempty"`
+	CustomLabels       map[string]string  `json:"customLabels,omitempty"`
+	CustomTaints       []interface{}      `json:"customTaints,omitempty"`
+}
+
+type AutopilotNodePoolRequestBody struct {
+	APIVersion string                `json:"apiVersion"`
+	Kind       string                `json:"kind"`
+	Metadata   ObjectMeta            `json:"metadata"`
+	Spec       AutopilotNodePoolSpec `json:"spec"`
+}
+
+type AutopilotNodePoolListResponse struct {
+	APIVersion string `json:"apiVersion"`
+	Items      []struct {
+		APIVersion string                        `json:"apiVersion"`
+		Kind       string                        `json:"kind"`
+		Metadata   ResourceMetadataWithTimestamp `json:"metadata"`
+		Spec       AutopilotNodePoolSpecReadOnly `json:"spec"`
+		Status     AutopilotNodePoolStatus       `json:"status"`
+	} `json:"items"`
+	Kind     string `json:"kind"`
+	Metadata struct {
+		Continue        string `json:"continue"`
+		ResourceVersion string `json:"resourceVersion"`
+	} `json:"metadata"`
+}
+
+// AutopilotNodePoolUpdateSpec carries only the fields the webhook allows to change after
+// create (region and cloudSpace are immutable).
+type AutopilotNodePoolUpdateSpec struct {
+	VCPU               VCPUTargetRO       `json:"vcpu,omitempty"`
+	VCPUPerNode        VCPUPerNodeRangeRO `json:"vcpuPerNode,omitempty"`
+	MemoryPerVCPU      string             `json:"memoryPerVCPU,omitempty"`
+	BudgetPerHour      string             `json:"budgetPerHour,omitempty"`
+	AllocationStrategy string             `json:"allocationStrategy,omitempty"`
+	CustomAnnotations  map[string]string  `json:"customAnnotations,omitempty"`
+	CustomLabels       map[string]string  `json:"customLabels,omitempty"`
+	CustomTaints       []interface{}      `json:"customTaints,omitempty"`
+}
+
+type AutopilotNodePoolUpdateRequestBody struct {
+	Spec AutopilotNodePoolUpdateSpec `json:"spec"`
+}
+
 type SpotNodePoolGetResponse struct {
 	APIVersion string                        `json:"apiVersion"`
 	Kind       string                        `json:"kind"`
