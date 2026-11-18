@@ -27,6 +27,15 @@ type SpotNodePoolAPI interface {
 	DeleteSpotNodePool(ctx context.Context, org, name string) error
 }
 
+// AutopilotNodePoolAPI defines autopilot node pool methods.
+type AutopilotNodePoolAPI interface {
+	ListAutopilotNodePools(ctx context.Context, org string, cloudspace string) ([]*AutopilotNodePool, error)
+	CreateAutopilotNodePool(ctx context.Context, org string, pool AutopilotNodePool) error
+	UpdateAutopilotNodePool(ctx context.Context, org string, pool AutopilotNodePool) error
+	GetAutopilotNodePool(ctx context.Context, org, name string) (*AutopilotNodePool, error)
+	DeleteAutopilotNodePool(ctx context.Context, org, name string) error
+}
+
 // OnDemandNodePoolAPI defines on-demand node pool methods.
 type OnDemandNodePoolAPI interface {
 	ListOnDemandNodePools(ctx context.Context, org string, cloudspace string) ([]*OnDemandNodePool, error)
@@ -88,6 +97,7 @@ type SpotAPI interface {
 	CloudspaceAPI
 	SpotNodePoolAPI
 	OnDemandNodePoolAPI
+	AutopilotNodePoolAPI
 	SpotRegionsAPI
 	SpotServerClassesAPI
 	SpotPricingAPI

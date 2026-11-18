@@ -41,6 +41,12 @@ func (c *RackspaceSpotClient) ListCloudspaces(ctx context.Context, org string) (
 		if err != nil {
 			return nil, c.handleAPIError(err, "on-demand node pools", "", "list for cloudspace "+cs.Metadata.Name)
 		}
+
+		// Autopilot node pools
+		autopilotNodePools, err := c.ListAutopilotNodePools(ctx, org, cs.Metadata.Name)
+		if err != nil {
+			return nil, c.handleAPIError(err, "autopilot node pools", "", "list for cloudspace "+cs.Metadata.Name)
+		}
 		finalList.Items = append(finalList.Items, CloudSpace{
 			Name:                 cs.Metadata.Name,
 			Org:                  org,
@@ -55,6 +61,7 @@ func (c *RackspaceSpotClient) ListCloudspaces(ctx context.Context, org string) (
 			AssignedServers:      cs.Status.AssignedServers,
 			SpotNodepools:        spotNodePools,
 			OnDemandNodePools:    onDemandNodePools,
+			AutopilotNodePools:   autopilotNodePools,
 			Status:               cs.Status.Phase,
 			Message:              cs.Status.Reason,
 		})
@@ -188,6 +195,12 @@ func (c *RackspaceSpotClient) GetCloudspace(ctx context.Context, org, name strin
 		return nil, c.handleAPIError(err, "on-demand node pool", name, "list for cloudspace "+interm.Metadata.Name)
 	}
 
+	// Autopilot node pools
+	autopilotNodePools, err := c.ListAutopilotNodePools(ctx, org, interm.Metadata.Name)
+	if err != nil {
+		return nil, c.handleAPIError(err, "autopilot node pool", name, "list for cloudspace "+interm.Metadata.Name)
+	}
+
 	finalList := CloudSpace{
 		Name:                 interm.Metadata.Name,
 		Org:                  org,
@@ -202,6 +215,7 @@ func (c *RackspaceSpotClient) GetCloudspace(ctx context.Context, org, name strin
 		AssignedServers:      interm.Status.AssignedServers,
 		SpotNodepools:        spotNodePools,
 		OnDemandNodePools:    onDemandNodePools,
+		AutopilotNodePools:   autopilotNodePools,
 		Status:               interm.Status.Phase,
 		Message:              interm.Status.Reason,
 	}
