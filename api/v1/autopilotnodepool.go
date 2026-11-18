@@ -130,7 +130,6 @@ func (c *RackspaceSpotClient) UpdateAutopilotNodePool(ctx context.Context, org s
 
 	updateBody := AutopilotNodePoolUpdateRequestBody{
 		Spec: AutopilotNodePoolUpdateSpec{
-			VCPU:               VCPUTargetRO{Total: pool.VCPUTotal},
 			VCPUPerNode:        VCPUPerNodeRangeRO{Min: pool.VCPUPerNodeMin, Max: pool.VCPUPerNodeMax},
 			MemoryPerVCPU:      pool.MemoryPerVCPU,
 			BudgetPerHour:      pool.BudgetPerHour,
@@ -139,6 +138,10 @@ func (c *RackspaceSpotClient) UpdateAutopilotNodePool(ctx context.Context, org s
 			CustomLabels:       pool.CustomLabels,
 			CustomTaints:       pool.CustomTaints,
 		},
+	}
+
+	if pool.VCPUTotal > 0 {
+		updateBody.Spec.VCPU = &VCPUTargetRO{Total: pool.VCPUTotal}
 	}
 
 	body, err := json.Marshal(updateBody)

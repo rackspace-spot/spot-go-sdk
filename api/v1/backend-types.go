@@ -249,7 +249,7 @@ type AutopilotNodePoolListResponse struct {
 // AutopilotNodePoolUpdateSpec carries only the fields the webhook allows to change after
 // create (region and cloudSpace are immutable).
 type AutopilotNodePoolUpdateSpec struct {
-	VCPU               VCPUTargetRO       `json:"vcpu,omitempty"`
+	VCPU               *VCPUTargetRO      `json:"vcpu,omitempty"`
 	VCPUPerNode        VCPUPerNodeRangeRO `json:"vcpuPerNode,omitempty"`
 	MemoryPerVCPU      string             `json:"memoryPerVCPU,omitempty"`
 	BudgetPerHour      string             `json:"budgetPerHour,omitempty"`
